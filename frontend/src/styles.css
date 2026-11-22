@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #f4f7f2; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+::selection { background: #b7f34a; color: #172033; }
+
+@layer components {
+  .panel { @apply rounded-2xl border border-slate-200/80 bg-white shadow-soft; }
+  .eyebrow { @apply font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400; }
+  .mono-value { @apply font-mono tracking-[-0.04em]; }
+  .focus-ring { @apply focus:outline-none focus:ring-2 focus:ring-cobalt/30 focus:ring-offset-2; }
+  .btn-primary { @apply focus-ring inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-secondary { @apply focus-ring inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-slate-300 hover:bg-slate-50; }
+  .input { @apply focus-ring w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-ink placeholder:text-slate-400; }
+}

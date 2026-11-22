@@ -1,0 +1,89 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: techsearch-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-techsearch}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - techsearch
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: techsearch-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3333
+      TRUST_PROXY: 1
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-techsearch}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      JWT_ISSUER: ${JWT_ISSUER:-techsearch-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-techsearch-web}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      APP_URL: ${APP_URL:-http://localhost}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-TechSearch <no-reply@techsearch.app>}
+      SCRAPER_ENABLED: ${SCRAPER_ENABLED:-true}
+      SCRAPER_CRON: ${SCRAPER_CRON:-0 0,12 * * *}
+      SCRAPER_TIMEOUT_MS: ${SCRAPER_TIMEOUT_MS:-30000}
+      SCRAPER_CONCURRENCY: ${SCRAPER_CONCURRENCY:-2}
+      SCRAPER_USER_AGENT: ${SCRAPER_USER_AGENT:-TechSearchPriceBot/1.0 (+https://techsearch.app/bot-info)}
+      SCRAPER_HEADLESS: ${SCRAPER_HEADLESS:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "3333"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3333/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 12
+    networks:
+      - techsearch
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    container_name: techsearch-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 6
+    networks:
+      - techsearch
+
+volumes:
+  postgres_data:
+    name: techsearch-postgres-data
+
+networks:
+  techsearch:
+    name: techsearch-network
